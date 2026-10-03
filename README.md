@@ -31,8 +31,85 @@ fastapi_todos/
 │   ├── crud.py            # Database read/write functions
 │   └── main.py            # FastAPI application & routes
 ├── .dockerignore
+
+
 ├── docker-compose.yml
 ├── Dockerfile
 ├── ecs-task-definition.json
 ├── README.md
 └── requirements.txt
+
+
+## Environment Setup
+# Clone repository and enter project root
+cd fastapi_todos
+
+# Create virtual environment
+python3 -m venv .venv
+
+# Activate virtual environment
+# On Linux/macOS:
+source .venv/bin/activate
+# On Windows PowerShell:
+# .venv\Scripts\Activate.ps1
+
+# Upgrade pip and install requirements
+pip install --upgrade pip
+pip install -r requirements.txt
+
+##Running the Development Server
+# Start Uvicorn with auto-reload enabled
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+---
+##Containerization Guide
+Docker CLI
+Build Image
+Bash
+docker build -t fastapi-todos:1.0 .
+
+[ Client / Inbound Traffic ]
+            │
+            ▼
+┌─────────────────────────┐
+│ Application Load Balancer│ (Optional - Port 80 / 443)
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│ Security Group (TCP 8000)│
+└───────────┬─────────────┘
+            │
+            ▼
+┌──────────────────────────────────────────────────────────┐
+│ AWS ECS Cluster (Fargate Launch Type)                   │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ Task Definition: fastapi-todos                     │  │
+│  │                                                    │  │
+│  │  ┌──────────────────────────────────────────────┐  │  │
+│  │  │ Container: fastapi-todos                     │  │  │
+│  │  │ Image: <ACCOUNT_ID>.dkr.ecr.<REGION>...      │  │  │
+│  │  │ Port Binding: 8000                           │  │  │
+│  │  │ Ephemeral Disk / AWS EFS Mount: /app/data    │  │  │
+│  │  └──────────────────────────────────────────────┘  │  │
+│  └────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────┘
+
+# Create ECS Cluster
+aws ecs create-cluster \
+  --cluster-name fastapi-todos-cluster \
+  --region ${AWS_REGION}
+
+# Create Fargate Service
+aws ecs create-service \
+  --cluster fastapi-todos-cluster \
+  --service-name fastapi-todos-service \
+  --task-definition fastapi-todos \
+  --desired-count 1 \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={
+    subnets=[\"subnet-xxxxxxxxxxxxxxxxx\"],
+    securityGroups=[\"sg-xxxxxxxxxxxxxxxxx\"],
+    assignPublicIp=\"ENABLED\"
+  }" \
+  --region ${AWS_REGION}
