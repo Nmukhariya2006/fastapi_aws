@@ -38,9 +38,10 @@ fastapi_todos/
 ├── ecs-task-definition.json
 ├── README.md
 └── requirements.txt
-
+---
 
 ## Environment Setup
+'''text
 # Clone repository and enter project root
 cd fastapi_todos
 
